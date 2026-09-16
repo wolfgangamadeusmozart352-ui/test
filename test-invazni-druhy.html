@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Test – Invazní druhy (EO 2026/27)</title>
+<style>
+:root{
+  --paper:#e7eae1; --card:#fbfbf7; --ink:#1b2a21; --soft:#54685b;
+  --line:#c3ccbd; --moss:#446b4e; --brass:#8a6a2f; --berry:#8c3a3a;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:ui-sans-serif,system-ui,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5}
+.wrap{max-width:720px;margin:0 auto;padding:18px 16px 70px}
+header{border-bottom:2px solid var(--ink);padding-bottom:12px;margin-bottom:14px}
+h1{font-family:Iowan Old Style,"Palatino Linotype",Palatino,Georgia,serif;font-size:1.55rem;margin:0 0 2px;font-weight:600}
+.sub{color:var(--soft);font-size:.86rem;margin:0}
+.controls{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+select,button{font:inherit;color:var(--ink)}
+select{background:var(--card);border:1px solid var(--line);border-radius:3px;padding:6px 8px;font-size:.88rem}
+.btn{background:var(--card);border:1px solid var(--line);border-radius:3px;padding:6px 12px;font-size:.88rem;cursor:pointer}
+.btn:hover{border-color:var(--soft)}
+.btn.primary{background:var(--moss);border-color:var(--moss);color:#fff}
+.btn:disabled{opacity:.45;cursor:default}
+:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+.bar{height:2px;background:var(--line);margin:12px 0 4px}
+.bar span{display:block;height:100%;background:var(--moss);transition:width .25s}
+.meta{display:flex;justify-content:space-between;font-size:.82rem;color:var(--soft);font-variant-numeric:tabular-nums}
+.qcard{background:var(--card);border:1px solid var(--line);border-radius:3px;padding:20px;margin:12px 0}
+.chap{font-size:.76rem;color:var(--brass);margin:0 0 8px}
+.q{font-family:Iowan Old Style,Georgia,serif;font-size:1.18rem;line-height:1.35;margin:0 0 16px}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;gap:10px;align-items:flex-start;text-align:left;background:transparent;
+  border:1px solid var(--line);border-radius:3px;padding:10px 12px;cursor:pointer;font-size:.95rem;width:100%}
+.opt:hover:not(:disabled){border-color:var(--soft);background:#f4f5f0}
+.opt b{color:var(--soft);font-weight:600;min-width:1.1em}
+.opt.right{border-color:var(--moss);background:#eaf1ea}
+.opt.right b{color:var(--moss)}
+.opt.wrong{border-color:var(--berry);background:#f6ecec}
+.opt.wrong b{color:var(--berry)}
+.opt:disabled{cursor:default}
+.exp{margin:14px 0 0;padding-left:12px;border-left:2px solid var(--brass);font-size:.9rem;color:var(--soft)}
+.exp b{color:var(--ink)}
+.result{background:var(--card);border:1px solid var(--line);border-radius:3px;padding:26px;text-align:center}
+.score{font-family:Iowan Old Style,Georgia,serif;font-size:2.4rem;margin:0}
+.hidden{display:none}
+.miss{text-align:left;margin-top:20px;font-size:.9rem}
+.miss li{margin-bottom:9px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Invazní druhy</h1>
+  <p class="sub">Test ke studijnímu materiálu 32. ročníku Ekologické olympiády</p>
+</header>
+
+<div class="controls">
+  <select id="chapSel" aria-label="Kapitola">
+    <option value="all">Všechny kapitoly</option>
+  </select>
+  <select id="lenSel" aria-label="Počet otázek">
+    <option value="0">Všechny otázky</option>
+    <option value="10">10 otázek</option>
+    <option value="20">20 otázek</option>
+    <option value="30">30 otázek</option>
+  </select>
+  <button class="btn primary" id="startBtn">Spustit test</button>
+</div>
+
+<section id="quiz" class="hidden">
+  <div class="bar"><span id="progress"></span></div>
+  <div class="meta"><span id="pos"></span><span id="scoreNow"></span></div>
+  <div class="qcard">
+    <p class="chap" id="chap"></p>
+    <p class="q" id="q"></p>
+    <div class="opts" id="opts"></div>
+    <p class="exp hidden" id="exp"></p>
+  </div>
+  <div class="controls">
+    <button class="btn primary" id="nextBtn" disabled>Další otázka</button>
+    <button class="btn" id="quitBtn">Ukončit a vyhodnotit</button>
+  </div>
+</section>
+
+<section id="result" class="hidden">
+  <div class="result">
+    <p class="score" id="finalScore"></p>
+    <p id="finalNote"></p>
+    <div class="controls" style="justify-content:center">
+      <button class="btn primary" id="againBtn">Nový test</button>
+      <button class="btn" id="redoBtn">Zopakovat jen chyby</button>
+    </div>
+    <ol class="miss hidden" id="missList"></ol>
+  </div>
+</section>
+
+</div>
+
+<script>
+const Q = [
+/* ---------- I. CO JE INVAZE ---------- */
+{g:"I. Co je invaze",q:"Co označuje pojem nepůvodní druh?",o:["Druh zavlečený činností člověka mimo oblast svého přirozeného výskytu","Druh, který na daném území vyhynul a byl znovu vysazen","Jakýkoli druh, který se rychle šíří","Druh, který se vyskytuje jen v zajetí nebo v kultuře"],a:0,e:"Nepůvodní (exotický) druh se do nového území dostal díky člověku, který mu pomohl překonat přirozené bariéry."},
+{g:"I. Co je invaze",q:"Které bariéry pomáhá člověk nepůvodním druhům překonat?",o:["Moře, oceány a vysoká pohoří","Rozdíly v délce dne","Magnetické pole Země","Hranice států a celní kontroly"],a:0,e:"Jde o prostředí nevhodná k přežívání, která druhům brání použít je jako odrazový můstek k osídlení dalších oblastí."},
+{g:"I. Co je invaze",q:"Který výraz znamená totéž co druh nepůvodní?",o:["Druh exotický","Druh expanzivní","Druh endemický","Druh reliktní"],a:0,e:"Termín exotický je méně častým synonymem pro nepůvodní."},
+{g:"I. Co je invaze",q:"Co je typickým příkladem neúmyslného zavlečení?",o:["Semena plevelů jako příměs v převáženém osivu","Vysazení okrasné dřeviny do parku","Chov nutrie říční pro kožešinu","Vysazení kapra do rybníka"],a:0,e:"Neúmyslně druhy cestují jako černí pasažéři – v obalech zboží, na pneumatikách, na trupech lodí, na obuvi cestujících."},
+{g:"I. Co je invaze",q:"Kde se černí pasažéři nejčastěji uvolňují do okolí?",o:["V přístavech, na překladištích a u skladů zboží","V horských národních parcích","V zemědělsky nevyužívaných rašeliništích","Na rozsáhlých mořských mělčinách"],a:0,e:"Jde o uzly dopravní sítě, kde se manipuluje s náklady a pohybuje se hodně lidí."},
+{g:"I. Co je invaze",q:"Jak se nazývá první fáze po transportu druhu do nové oblasti?",o:["Zavlečení (introdukce)","Naturalizace","Invaze","Eradikace"],a:0,e:"Po introdukci může následovat zdomácnění a teprve pak případná invaze."},
+{g:"I. Co je invaze",q:"Čím se vyznačuje přechodně zavlečený druh?",o:["Netvoří stabilní populaci a jeho výskyt závisí na opakovaných únicích z chovů či kultur","Šíří se nekontrolovatelně i do přirozených biotopů","Vyskytuje se výhradně v chráněných územích","Je vždy původní, jen se nově rozšířil"],a:0,e:"Objevuje se na malém počtu lokalit, obvykle blízko lidských sídel."},
+{g:"I. Co je invaze",q:"Co je populace?",o:["Skupina jedinců téhož druhu žijících na stejném místě a ve stejnou dobu","Soubor všech druhů v jednom ekosystému","Počet jedinců, které dokáže prostředí uživit","Skupina blízce příbuzných druhů"],a:0,e:"Definice z metodiky, důležitá pro pochopení fází invazního procesu."},
+{g:"I. Co je invaze",q:"Co znamená naturalizace (zdomácnění)?",o:["Druh získá schopnost dlouhodobě přežívat a rozmnožovat se nezávisle na člověku","Druh je úředně zapsán na unijní seznam","Původní druh se začne šířit po celém území","Druh je záměrně vysazen do chráněného území"],a:0,e:"Naturalizovaný druh tvoří stabilní populace, ale ještě se nemusí intenzivně šířit."},
+{g:"I. Co je invaze",q:"Na jakých stanovištích k naturalizaci dochází nejčastěji?",o:["Na člověkem silně ovlivněných stanovištích s nadbytkem živin a častým narušováním","Na živinami chudých rašeliništích","V uzavřených horských smrčinách","Na vysokohorských skalách"],a:0,e:"Disturbance a nadbytek živin omezují konkurenci původních druhů a nahrávají nově příchozím."},
+{g:"I. Co je invaze",q:"Čím se invazní druh liší od druhu pouze zdomácnělého?",o:["Šíří se intenzivně a nekontrolovatelně i na vzdálené lokality, zdrojem už jsou existující populace","Vždy působí ekonomické škody","Je vždy živočich, nikdy rostlina","Byl zavlečen úmyslně, ne neúmyslně"],a:0,e:"Invazní druhy se prosazují i na polopřirozených a přirozených stanovištích a vyrovnají se s konkurencí původních druhů."},
+{g:"I. Co je invaze",q:"Co tvrdí Darwinova naturalizační hypotéza?",o:["Nepůvodní druh je úspěšnější, pokud není blízce příbuzný původním druhům","Nepůvodní druh je úspěšný jen tehdy, má-li blízkého příbuzného v nové oblasti","Invazní druhy se vyvíjejí rychleji než původní","Invaze je úspěšná jen v tropech"],a:0,e:"Nepříbuzný druh se svými vlastnostmi liší, a proto obsadí volnou část ekologické niky, kterou původní druhy nevyužívají."},
+{g:"I. Co je invaze",q:"Co znamená preadaptace nepůvodního druhu?",o:["Druh je na podmínky nového prostředí připraven předem, nemusí se jim postupně přizpůsobovat","Druh se v novém prostředí rychle geneticky změní","Druh byl na introdukci připraven ve šlechtitelské stanici","Druh přežívá jen díky opakovaným únikům"],a:0,e:"Právě preadaptace vysvětluje častý přenos druhů mezi oblastmi s podobným klimatem."},
+{g:"I. Co je invaze",q:"Teorie úniku před nepřáteli vysvětluje úspěch invazního druhu tím, že:",o:["V novém území postrádá své specifické predátory, patogeny a parazity","Je rychlejší než místní predátoři","Se dokáže ukrýt v lidských sídlech","Nemá žádné přirozené nepřátele nikde na světě"],a:0,e:"V domovině ho tito nepřátelé běžně omezují, v nové oblasti chybí."},
+{g:"I. Co je invaze",q:"Na co navazuje teorie zvýšené kompetiční schopnosti?",o:["Na únik před nepřáteli – uvolněné zdroje může druh investovat do růstu a rozmnožování místo do obrany","Na alelopatii – druh otravuje půdu","Na preadaptaci – druh je odolnější vůči mrazu","Na Darwinovu hypotézu příbuznosti"],a:0,e:"Původní druhy naopak musí část zdrojů investovat do obrany před svými přítomnými nepřáteli."},
+{g:"I. Co je invaze",q:"Teorie nových zbraní se typicky opírá o jev zvaný:",o:["Alelopatie","Predace","Symbióza","Mimikry"],a:0,e:"Druh ovlivňuje půdní prostředí chemickými látkami z kořenů nebo z opadaných listů a potlačuje tak citlivé druhy."},
+{g:"I. Co je invaze",q:"Co je expanzivní druh?",o:["Původní druh, který se rychle šíří v důsledku změn prostředí","Nepůvodní druh v raném stadiu invaze","Druh záměrně vysazovaný do krajiny","Druh, který se šíří pouze v chráněných územích"],a:0,e:"Expanzivní druh není dovezený odjinud, ale díky eutrofizaci či změnám hospodaření se může chovat podobně jako invazní."},
+{g:"I. Co je invaze",q:"Které druhy metodika uvádí jako typické expanzivní?",o:["Třtina křovištní a rákos obecný","Bolševník velkolepý a klejicha hedvábná","Akát a pajasan žláznatý","Ambrozie peřenolistá a mračňák Theophrastův"],a:0,e:"Cílem u expanzivních druhů není úplná likvidace – jinde mohou být vzácné –, ale potlačení tam, kde je podpořily změny prostředí."},
+{g:"I. Co je invaze",q:"Co je stanovištně nepůvodní druh?",o:["Druh v ČR původní, který je ale vysazován tam, kde by přirozeně nerostl","Druh zavlečený po roce 1500","Druh, který v ČR vyhynul","Druh z unijního seznamu"],a:0,e:"Učebnicovým příkladem jsou rozsáhlé výsadby smrku ztepilého v nižších polohách, například na Vysočině."},
+{g:"I. Co je invaze",q:"Jaký je přirozený výskyt smrku ztepilého u nás?",o:["V horách, v nižších polohách jen na podmáčených stanovištích","Rovnoměrně po celém území","Jen na vápencových skalách","Jen v nivách velkých řek"],a:0,e:"Mimo optimum má nízkou odolnost vůči suchu a kůrovcovým kalamitám."},
+{g:"I. Co je invaze",q:"Které rostliny označujeme jako archeofyty?",o:["Nepůvodní rostliny zavlečené do Evropy od neolitu do roku 1500","Všechny rostliny, které u nás rostou od poslední doby ledové","Rostliny zavlečené po objevení Ameriky","Rostliny záměrně vysazované po 2. světové válce"],a:0,e:"Archeofyty jsou většinou zdomácnělé, vázané na pole, úhory a rumiště, a jen málo z nich je invazních."},
+{g:"I. Co je invaze",q:"Který rok je považován za zásadní zlom ve způsobu zavlékání nepůvodních druhů?",o:["1492","1348","1620","1918"],a:0,e:"Znovuobjevení Ameriky Kryštofem Kolumbem zahájilo éru objevitelských plaveb a evropské kolonizace."},
+{g:"I. Co je invaze",q:"Které z těchto druhů metodika uvádí jako archeofyty zavlečené s neolitickým zemědělstvím?",o:["Koukol polní, chrpa modrá, mák vlčí","Klejicha hedvábná, ambrozie, turan roční","Pajasan žláznatý, akát, lupina","Bolševník velkolepý, netýkavka žláznatá"],a:0,e:"Jejich semena tvořila příměs v osivu; pocházejí hlavně z Předního a Středního východu a Středomoří."},
+{g:"I. Co je invaze",q:"Čím se neofyty liší od archeofytů?",o:["Pocházejí z rozmanitějších oblastí a je mezi nimi více invazních druhů","Byly zavlečeny dříve","Jsou vždy dřeviny","Nikdy se nešíří mimo lidská sídla"],a:0,e:"Neofyty jsou rostliny zavlečené do Evropy po roce 1500 n. l."},
+{g:"I. Co je invaze",q:"Jak se po 2. světové válce změnil směr zavlékání druhů?",o:["Zavlékání probíhá intenzivně mezi všemi kontinenty navzájem, ne už hlavně z Evropy ven","Zavlékání se prakticky zastavilo","Směřuje výhradně z Evropy do kolonií","Probíhá jen v rámci jednotlivých kontinentů"],a:0,e:"Jedním z nejvýznamnějších zdrojů nepůvodních druhů pro Evropu je dnes Asie."},
+{g:"I. Co je invaze",q:"Kolik zdomácnělých druhů organismů uvádí zpráva IPBES pro rok 2023?",o:["Přibližně 37 000","Přibližně 3 500","Přibližně 200","Přibližně 1 500 000"],a:0,e:"Roční přírůstek je asi 200 nově zdomácnělých druhů a zhruba 3 500 z celkového počtu je hodnoceno jako invazní."},
+{g:"I. Co je invaze",q:"Proč patří oceánské ostrovy mezi hotspoty nepůvodních druhů?",o:["Dlouhá evoluční izolace tam vedla k absenci konkurenčně silných druhů, predátorů a patogenů","Mají nejvíce přístavů na světě","Mají extrémně živinami bohaté půdy","Nejsou tam chráněná území"],a:0,e:"Ostrovní flóry a fauny jsou proto k dopadům invazí mimořádně náchylné – příkladem jsou Havaj, Galapágy či Nový Zéland."},
+{g:"I. Co je invaze",q:"Které oblasti metodika označuje jako klimatické hotspoty invazí?",o:["Oblasti mediteránního klimatu – Středomoří, Kalifornie, Chile, JZ Austrálie","Polární oblasti obou polokoulí","Vlhké rovníkové pralesy","Rozsáhlé horské ledovce"],a:0,e:"Podobné klima umožňuje přenos druhů preadaptovaných na suché a teplé podmínky mezi kontinenty."},
+{g:"I. Co je invaze",q:"Proč mají tropy obvykle méně invazních druhů než mírný pás?",o:["Vyšší druhová bohatost znamená méně volných nik a vyšší tlak predátorů a patogenů","Mají chladnější klima","Nejsou tam žádná města","Nepůvodní druhy tam nikdo nezavléká"],a:0,e:"Roli hraje i historie kolonialismu a fakt, že mnoho nepůvodních druhů pochází právě z mírného pásu."},
+{g:"I. Co je invaze",q:"Který kontinent je na žebříčku s nejvyšším počtem nepůvodních druhů?",o:["Evropa","Antarktida","Jižní Amerika","Afrika"],a:0,e:"Důvodem je dlouhá historie obchodu a osídlení, hustá síť měst a přístavů a kombinace archeofytů a neofytů."},
+{g:"I. Co je invaze",q:"Které biotopy bývají nepůvodními rostlinami invadované nejvíce?",o:["Ruderální (rumištní) a pobřežní biotopy a zemědělská půda","Vrchoviště a rašeliniště","Horské smrčiny","Skalní stepi ve vysokých polohách"],a:0,e:"Spojuje je vysoká míra narušování, velká dostupnost živin a intenzivní transport druhů."},
+{g:"I. Co je invaze",q:"Proč jsou nížiny obvykle invadovanější než pohoří?",o:["Kvůli vyšší hustotě obyvatel, delšímu osídlení a mírnějšímu klimatu","Kvůli většímu množství srážek","Protože tam nejsou žádné disturbance","Protože mají chudší půdy"],a:0,e:"V horách naopak působí kyselá půdní reakce, málo živin, drsné klima i menší vliv člověka."},
+
+/* ---------- II. EKOLOGICKÉ DOPADY ---------- */
+{g:"II. Ekologické dopady",q:"Co předpokládá teorie ekologické odolnosti?",o:["Druhově bohatší a komplexnější ekosystém lépe odolává invazím, protože nabízí málo volných zdrojů","Čím více druhů, tím více invazí","Odolnost závisí výhradně na nadmořské výšce","Invazím odolávají jen uměle vysazené porosty"],a:0,e:"Metodika upozorňuje, že jde o hypotézu, která platí hlavně v malém měřítku a u nenarušených ekosystémů."},
+{g:"II. Ekologické dopady",q:"Proč jsou druhově chudé horské smrčiny nebo rašeliniště málo invadované?",o:["Jde o extrémní stanoviště s kyselou půdou a málo živinami, kde navíc působí menší vliv člověka","Jsou chráněné zákonem, takže tam druhy nepronikají","Mají nejvyšší druhovou bohatost","Rostou tam výhradně neofyty"],a:0,e:"Nejde tedy o druhovou bohatost, ale o extrémní podmínky a málo zdrojů nepůvodních druhů v okolí."},
+{g:"II. Ekologické dopady",q:"Které z uvedených patří mezi nejvýznamnější dopady invazních druhů na původní druhy?",o:["Konkurence o zdroje, predace, šíření patogenů a ekosystémové inženýrství","Pouze predace","Pouze změna barvy půdy","Pouze konkurence o světlo"],a:0,e:"Ekosystémové inženýrství znamená, že organismy fyzicky přetvářejí prostředí a biotopy."},
+{g:"II. Ekologické dopady",q:"Co označuje pojem invazní kolaps?",o:["Přítomnost jednoho invazního druhu usnadňuje invazi nebo impakt dalších nepůvodních druhů","Náhlé vymření invazního druhu po vyčerpání zdrojů","Zhroucení populace původního predátora","Selhání eradikačního zásahu"],a:0,e:"Zpětnovazebné mechanismy vedou ke kumulaci negativních efektů a rychlejšímu zhoršení stavu ekosystému."},
+{g:"II. Ekologické dopady",q:"Odkud pochází hlaváč černoústý (Neogobius melanostomus)?",o:["Z Pontokaspické oblasti","Ze Severní Ameriky","Z jihovýchodní Asie","Z Austrálie"],a:0,e:"Do Evropy a Severní Ameriky se rozšířil díky lodní dopravě a úpravám toků."},
+{g:"II. Ekologické dopady",q:"Jak hlaváč černoústý napomáhá invazi škeblice asijské?",o:["Je hostitelem a přenašečem jejích glochidií do dalších částí toků","Loví její přirozené predátory","Rozrušuje dno a uvolňuje jí prostor","Přenáší její vajíčka na šupinách"],a:0,e:"Glochidie jsou parazitické stadium velkých mlžů; škeblice pak silnou infekcí poškozuje plůdek původních ryb."},
+{g:"II. Ekologické dopady",q:"Čím je pro původní slunéčka nebezpečné slunéčko východní (Harmonia axyridis)?",o:["Při nedostatku mšic loví i vajíčka, larvy a kukly jiných druhů slunéček","Přenáší na ně račí mor","Spásá rostliny, na kterých se vyvíjejí","Vytlačuje je z hnízdních dutin"],a:0,e:"Samo přitom domácími druhy napadáno nebývá a je odolné vůči patogenům."},
+{g:"II. Ekologické dopady",q:"Proč trnovník akát zásadně mění půdní podmínky?",o:["V kořenech má symbiotické bakterie rodu Rhizobium fixující vzdušný dusík","Okyseluje půdu jako jehličnany","Odčerpává z půdy veškerý dusík","Zvyšuje obsah vápníku v půdě"],a:0,e:"K obohacení půdy dusíkem přispívá i jeho listový opad bohatý na dusík."},
+{g:"II. Ekologické dopady",q:"Které druhy podle metodiky těží z obohacení půdy dusíkem pod akátem?",o:["Netýkavka malokvětá a sveřep jalový","Vachta trojlistá a rosnatka","Vřes obecný a brusnice","Koniklec a kavyl"],a:0,e:"Výsledkem je ruderalizace podrostu a vytlačení vzácných specialistů na živinami chudá, otevřená stanoviště."},
+{g:"II. Ekologické dopady",q:"Jak střevlička východní degraduje nově vzniklé tůně?",o:["Efektivně vyžere většinu zooplanktonu, což vede k rozvoji řas a sinic","Rozrývá břehy a způsobuje erozi","Spásá kořeny orobince","Přenáší račí mor"],a:0,e:"Ztráta zooplanktonu se projeví na průhlednosti vody."},
+{g:"II. Ekologické dopady",q:"Čím zhoršuje kvalitu vody karas stříbřitý?",o:["Víří sedimenty na dně, čímž zvyšuje zákal a uvolňuje nahromaděné živiny","Vylučuje alelopatické látky","Konzumuje výhradně submerzní makrofyta","Ucpává odtoková potrubí"],a:0,e:"Uvolněných živin využijí sinice, které ve fytoplanktonu převládnou."},
+{g:"II. Ekologické dopady",q:"Který expanzivní druh začne převládat v pobřežním pásu degradované tůně?",o:["Orobinec širokolistý","Vachta trojlistá","Žebratka bahenní","Ostřice šáchorovitá"],a:0,e:"Je schopen využít zvýšené množství živin, zatímco ponořená makrofyta kvůli zákalu mizí."},
+{g:"II. Ekologické dopady",q:"Který obojživelník je v metodice uveden jako citlivý na ztrátu ponořených rostlin v tůních?",o:["Skokan ostronosý","Ropucha zelená","Mlok skvrnitý","Čolek horský"],a:0,e:"Z postižených tůní mizí nebo v nich vůbec nenachází vhodné podmínky k životu."},
+{g:"II. Ekologické dopady",q:"Jak sveřep střešní změnil ekosystémy amerického středozápadu?",o:["Vytvořil velké množství hořlavé biomasy a zvýšil četnost i intenzitu požárů","Vyčerpal z půdy veškerý dusík","Zastínil prérii svým vysokým vzrůstem","Zasolil půdu"],a:0,e:"Původní vegetace byla adaptovaná na požáry jednou za 30–100 let, po invazi hoří každých 3–5 let."},
+{g:"II. Ekologické dopady",q:"Jaký status má sveřep střešní v České republice?",o:["Zdomácnělý archeofyt","Invazní neofyt s vysokou prioritou","Původní druh","Druh z unijního seznamu"],a:0,e:"Pěkný příklad toho, že status druhu se vždy vztahuje ke konkrétnímu území."},
+{g:"II. Ekologické dopady",q:"Který invazní druh metodika uvádí jako příklad rostliny prakticky bez známých negativních dopadů?",o:["Turan roční","Bolševník velkolepý","Klejicha hedvábná","Pajasan žláznatý"],a:0,e:"Může být příležitostí pro opylovače v jinak homogenních městských trávnících – to ale není důvod jej podporovat."},
+{g:"II. Ekologické dopady",q:"Co znamená homogenizace krajiny způsobená invazemi?",o:["V ekosystému zůstává jen několik velmi početných, nenáročných a invazních druhů","Krajina se rozdělí na menší, izolované fragmenty","Všechny druhy se promíchají a diverzita roste","Vyrovnají se nadmořské výšky stanovišť"],a:0,e:"Vzácné druhy s vysokými nároky na kvalitu prostředí postupně vymírají."},
+{g:"II. Ekologické dopady",q:"Které zvláště chráněné území je velkoplošné?",o:["Chráněná krajinná oblast","Přírodní rezervace","Přírodní památka","Národní přírodní památka"],a:0,e:"Velkoplošná jsou národní parky a CHKO, maloplošná přírodní rezervace a památky (i v národní kategorii)."},
+{g:"II. Ekologické dopady",q:"Který invazní druh je v metodice spojen s Krkonošským NP a NP Šumava?",o:["Lupina mnoholistá (vlčí bob mnoholistý)","Boryt barvířský","Klejicha hedvábná","Pajasan žláznatý"],a:0,e:"Boryt barvířský je naopak uváděn ze stepních trávníků CHKO Pálava."},
+{g:"II. Ekologické dopady",q:"Které druhy se daří systematicky potlačovat promyšleným managementem v NP Podyjí?",o:["Pajasan žláznatý a trnovník akát","Lupina mnoholistá a turan roční","Netýkavka žláznatá a orobinec","Ambrozie a mračňák"],a:0,e:"Pravidelný management a monitoring v chráněných územích výrazně zvyšují šance na úspěch."},
+{g:"II. Ekologické dopady",q:"Proč je podle metodiky krátkozraké soustředit se jen na zvláště chráněná území?",o:["I v běžné krajině jsou stanoviště s velkým potenciálem pro obnovu přírody a biodiverzitu","Protože v ZCHÚ invazní druhy nerostou","Protože na ZCHÚ nelze získat finance","Protože ZCHÚ tvoří většinu území státu"],a:0,e:"Příkladem jsou zbytky stepních trávníků v zemědělské krajině jižní Moravy, dnes často zarůstající akátem či klejichou."},
+{g:"II. Ekologické dopady",q:"Kdy byla v České republice poprvé zjištěna sršeň asijská (Vespa velutina)?",o:["V roce 2023","V roce 1945","V roce 2008","V roce 1992"],a:0,e:"Je velmi nebezpečná pro včelu medonosnou, jejíž populace dokáže významně zredukovat nebo zlikvidovat."},
+{g:"II. Ekologické dopady",q:"Jaký nepřímý dopad by mělo oslabení populací včel sršní asijskou?",o:["Ohrožení opylování jako zásadní ekosystémové služby","Zvýšení zákalu ve vodních tocích","Nárůst četnosti požárů","Šíření račího moru"],a:0,e:"Následky by zasáhly nejen zemědělství, ale ekosystémy obecně."},
+
+/* ---------- III. INVAZE A ČLOVĚK ---------- */
+{g:"III. Invaze a člověk",q:"Který invazní druh působí škody okusem sazenic při obnově lesních porostů?",o:["Jelen sika","Nutrie říční","Psík mývalovitý","Norek americký"],a:0,e:"Lesnictví patří mezi odvětví na škody invazními druhy nejcitlivější."},
+{g:"III. Invaze a člověk",q:"Které invazní šelmy metodika uvádí jako příčinu ztrát lovné zvěře v myslivosti?",o:["Norek americký, psík mývalovitý a mýval severní","Lasice hranostaj a kuna lesní","Šakal obecný a rys ostrovid","Liška obecná a jezevec lesní"],a:0,e:"Jde o predaci nepůvodními druhy šelem."},
+{g:"III. Invaze a člověk",q:"Které tři invazní ryby působí škody v rybníkářství?",o:["Střevlička východní, karas stříbřitý a sumeček černý","Okoun říční, bolen dravý a lín obecný","Kapr obecný, pstruh duhový a candát","Vranka obecná, mník a úhoř"],a:0,e:"Přestože jsou to malé druhy, jejich početnost a biomasa bývají velmi vysoké a konkurují cílové obsádce o potravu."},
+{g:"III. Invaze a člověk",q:"Čím škodí slávička mnohotvárná (Dreissena polymorpha) infrastruktuře?",o:["Početné kolonie na pevných površích ucpávají potrubí zavlažovacích a chladicích systémů","Prokousává se betonovými hrázemi","Rozrušuje dno a způsobuje zákal","Konzumuje kabelovou izolaci"],a:0,e:"Poškozovat může i infrastrukturu vodních elektráren."},
+{g:"III. Invaze a člověk",q:"Kdy byla mandelinka bramborová poprvé zaznamenána u nás?",o:["V roce 1945","V roce 1892","V roce 1968","V roce 2008"],a:0,e:"Do Evropy se tento severoamerický druh dostal na konci 19. století a dnes je rozšířen téměř v celé temperátní zóně Eurasie."},
+{g:"III. Invaze a člověk",q:"Jaký typ plodů napadá octomilka japonská (Drosophila suzukii)?",o:["Dozrávající plody s měkkou dužninou, například třešně, maliny nebo hrozny","Výhradně obiloviny","Kořenovou zeleninu","Suché skladované plodiny"],a:0,e:"V Evropě byla poprvé zaznamenána v roce 2008 a je polyfágní."},
+{g:"III. Invaze a člověk",q:"Jak poznáme poškození plodů kněžicemi (Nezara viridula, Halyomorpha halys)?",o:["Podle žlutých skvrn v místě vpichu bodavě sacího ústrojí","Podle okousaných okrajů listů","Podle chodbiček pod slupkou","Podle bílého povlaku na plodech"],a:0,e:"Plody jsou navíc znehodnoceny zápachem a vpichy slouží jako vstupní brána houbových a bakteriálních infekcí."},
+{g:"III. Invaze a člověk",q:"Proč ambrozie peřenolistá výrazně prodlužuje pylovou sezónu alergiků?",o:["Kvete pozdě v létě a na podzim, kdy už většina původních alergenů ustupuje","Kvete jako první na jaře","Kvete nepřetržitě po celý rok","Uvolňuje pyl až po odkvětu"],a:0,e:"Jedna rostlina může vyprodukovat miliony pylových zrn a reakce nastává i při nízkých koncentracích."},
+{g:"III. Invaze a člověk",q:"Které vlastnosti dělají z ambrozie peřenolisté problém i pro zemědělce?",o:["Silně konkuruje plodinám o vodu a živiny a je odolná proti herbicidům","Je jedovatá pro hospodářská zvířata","Ucpává závlahové systémy","Je hostitelem račího moru"],a:0,e:"Šíří se v obilninách, kukuřici, slunečnici a sóje a výrazně snižuje výnosy."},
+{g:"III. Invaze a člověk",q:"Jaký status má v ČR ježatka kuří noha?",o:["Archeofyt","Invazní neofyt","Původní druh","Expanzivní druh"],a:0,e:"Šíří se hlavně v kukuřici a okopaninách, je silně rezistentní proti herbicidům a má rychlý růst i velkou produkci semen."},
+{g:"III. Invaze a člověk",q:"Čím mračňák Theophrastův uniká běžným zásahům proti plevelům?",o:["Pozdním klíčením","Růstem pod zemí","Kvetením v zimě","Odolností vůči mrazu"],a:0,e:"Navíc tvoří velké zastiňující listy a jeho semena dlouhodobě vytrvávají v půdě."},
+{g:"III. Invaze a člověk",q:"Které látky způsobují nebezpečné popáleniny po kontaktu s bolševníkem velkolepým?",o:["Furanokumariny","Alkaloidy a pyraziny","Glyfosáty","Fenolické exudáty"],a:0,e:"Při následném vystavení slunečnímu záření vznikají těžké fotodermatitidy s bolestivými puchýři a dlouhodobými změnami pigmentace."},
+{g:"III. Invaze a člověk",q:"Odkud pochází bolševník velkolepý?",o:["Z oblasti Kavkazu","Ze Severní Ameriky","Z východní Asie","Ze Středomoří"],a:0,e:"V ČR se objevil v druhé polovině 20. století a masově se šíří hlavně ve vlhčích oblastech."},
+{g:"III. Invaze a člověk",q:"Jak se šíří klejicha hedvábná?",o:["Vegetativně dlouhými oddenky i generativně ochmýřenými semeny","Pouze semeny přenášenými vodou","Pouze úlomky kořenů při orbě","Pouze prostřednictvím ptáků"],a:0,e:"Má navíc hluboké kořeny a výbornou schopnost regenerace, což ztěžuje její likvidaci."},
+{g:"III. Invaze a člověk",q:"Jakým mechanismem klejicha hedvábná vytváří monokultury?",o:["Alelopatií – do půdy vylučuje látky potlačující růst jiných rostlin","Fixací vzdušného dusíku","Zvýšením četnosti požárů","Změnou pH půdy na zásadité"],a:0,e:"Největším problémem je to pro vegetaci stepních trávníků, ale i pro polní kultury."},
+{g:"III. Invaze a člověk",q:"Která onemocnění může přenášet komár tygrovaný (Aedes albopictus)?",o:["Západonilskou horečku a žlutou zimnici","Račí mor","Lymeskou boreliózu a klíšťovou encefalitidu","Ptačí chřipku"],a:0,e:"Jeho výskyt byl v ČR zjištěn díky mírnějším zimám souvisejícím s klimatickou změnou."},
+{g:"III. Invaze a člověk",q:"Čím je nepříjemné slunéčko východní pro obyvatele domů?",o:["Ve velkých počtech zimuje v obydlích a při manipulaci vylučuje zapáchající hemolymfu","Poškozuje dřevěné konstrukce","Přenáší salmonelózu","Kontaminuje pitnou vodu"],a:0,e:"Hemolymfa obsahuje obranné alkaloidy a pyraziny, na které mohou citliví lidé reagovat."},
+{g:"III. Invaze a člověk",q:"U které skupiny organismů je eradikace vnímána jako nejzávažnější etický problém?",o:["U obratlovců","U rostlin","U hub","U bakterií"],a:0,e:"Obecně je eradikace eticky citlivější u živočichů než u rostlin a v rámci živočichů právě u obratlovců."},
+{g:"III. Invaze a člověk",q:"Proč se neletální metody regulace (například odchyt a umístění do zařízení na dožití) používají jen omezeně?",o:["Bývají velmi pracné, neúměrně nákladné a pro postižené ekosystémy málo efektivní","Jsou zakázané zákonem o ochraně zvířat","Nefungují u žádného druhu","Vyžadují souhlas Evropské komise"],a:0,e:"Přesto zůstávají eticky citlivou alternativou, o které se diskutuje."},
+{g:"III. Invaze a člověk",q:"U kterého druhu vznikla v Hradci Králové petice za jeho záchranu?",o:["Nutrie říční","Mýval severní","Želva nádherná","Husice nilská"],a:0,e:"V městském prostředí je vnímána jako populární zvíře, což komplikuje snahy o redukci populací."},
+{g:"III. Invaze a člověk",q:"Které druhy se do naší přírody dostaly hlavně vypouštěním nechtěných chovanců?",o:["Želva nádherná a slunečnice pestrá","Jelen sika a daněk evropský","Ambrozie a mračňák","Sršeň asijská a komár tygrovaný"],a:0,e:"Dobře míněný úmysl „vrátit zvíře do přírody“ zpravidla napáchá mnohem větší škody, než jaký měl přinést užitek."},
+{g:"III. Invaze a člověk",q:"Jaký postoj k řešení sporů o invazní druhy metodika doporučuje?",o:["Vyjasnit si pozice, představit argumenty a diskutovat etické důsledky různých scénářů","Rozhodnout co nejrychleji bez veřejné diskuse","Přenechat rozhodnutí výhradně vlastníkům pozemků","Vyhnout se tématu v médiích"],a:0,e:"Prodiskutovat důsledky bývá efektivnější než jitřit emoce neuváženými prohlášeními."},
+
+/* ---------- IV. MANAGEMENT ---------- */
+{g:"IV. Management invazí",q:"Kolik nepůvodních druhů živočichů se podle citovaného katalogu vyskytuje v ČR?",o:["Asi 600, z toho nejméně 113 invazních","Asi 1576, z toho 75 invazních","Asi 78, z toho 39 invazních","Asi 3 500"],a:0,e:"U rostlin je poměr jiný: 1576 nepůvodních a 75 invazních druhů."},
+{g:"IV. Management invazí",q:"Na kolik jsou odhadovány roční náklady na regulaci invazních druhů v ČR?",o:["Na více než 250 milionů korun","Na zhruba 25 milionů korun","Na zhruba 2,5 miliardy korun","Na necelý milion korun"],a:0,e:"Pro srovnání, celosvětové škody odpovídají asi 5 % světového HDP."},
+{g:"IV. Management invazí",q:"Který krok je v managementu invazí prvním a nejúčinnějším?",o:["Prevence","Eradikace","Včasná detekce","Monitoring chráněných území"],a:0,e:"Jedině prevence zcela eliminuje potenciální škodlivé dopady a je nesrovnatelně levnější než pozdější odstraňování."},
+{g:"IV. Management invazí",q:"Co patří mezi preventivní opatření?",o:["Osvěta chovatelů, kontrola čistoty osiva a zabezpečení chovů proti únikům","Plošná aplikace herbicidů","Odčerpávání tůní","Vytrhávání porostů dobrovolníky"],a:0,e:"Cílem je zamezit introdukci nebo proniknutí nepůvodního druhu do nového území."},
+{g:"IV. Management invazí",q:"Proč je důležitá včasná detekce?",o:["V raných fázích invaze lze druh ještě efektivně eliminovat a opatření jsou relativně levná","Umožňuje druh zapsat na unijní seznam","Je podmínkou pro vyhlášení chráněného území","Zvyšuje výnosy zemědělských plodin"],a:0,e:"Pomáhá mapování rizikových cest a vektorů šíření, jako jsou dopravní koridory a překladiště."},
+{g:"IV. Management invazí",q:"Co je občanská věda ve vztahu k invazním druhům?",o:["Zapojení laické veřejnosti do mapování a monitoringu, které pokryje mnohem větší území","Věda financovaná výhradně z obecních rozpočtů","Povinné hlášení každého nálezu úřadu","Studium vlivu invazí na městské obyvatelstvo"],a:0,e:"Příkladem jsou akce Biosmršť nebo Najdi.je."},
+{g:"IV. Management invazí",q:"Kolik druhů bylo v roce 2016 zařazeno na český Black List?",o:["78 rostlin a 39 živočichů","113 rostlin a 600 živočichů","75 rostlin a 39 živočichů","37 rostlin a 78 živočichů"],a:0,e:"Seznam vychází z míry dopadu druhů na původní společenstva a označuje druhy s nejvyšší prioritou."},
+{g:"IV. Management invazí",q:"Které nařízení EU stojí za takzvaným unijním seznamem?",o:["Nařízení EU č. 1143/2014","Zákon č. 114/1992 Sb.","Nařízení Rady (ES) č. 708/2007","Zákon č. 364/2021 Sb."],a:0,e:"Nařízení č. 708/2007 se naopak týká nepůvodních druhů využívaných v akvakultuře."},
+{g:"IV. Management invazí",q:"Proč se zásahy proti invazním druhům často soustředí na chráněná území?",o:["Jsou pro ně lépe dostupné finanční prostředky a odpadá složité vyjednávání s vlastníky pozemků","Invazní druhy se jinde nevyskytují","Zákon zásahy jinde zakazuje","Jsou to nejvíce invadované biotopy"],a:0,e:"Úplná eradikace na velkém území je přitom často prakticky nemožná."},
+{g:"IV. Management invazí",q:"Proč se i po úspěšné lokální eradikaci může druh vrátit?",o:["V okolí mohou být životaschopné populace, odkud se druh znovu rozšíří","Semena vydrží v půdě věčně","Eradikace vždy podpoří zmlazení","Chráněná území nelze monitorovat"],a:0,e:"Roli hraje i způsob šíření – větrem u klejichy, vodou u netýkavky žláznaté."},
+{g:"IV. Management invazí",q:"Jak metodika hodnotí elektrolov při managementu invazních ryb?",o:["Je neselektivní, rychlý, ale nákladný – vhodný pro monitoring, pro eradikaci málo","Je selektivní a ideální pro úplnou eradikaci","Lze jej použít jen v hluboké vodě","Je nejlevnější dostupnou metodou"],a:0,e:"Jeho využití omezuje hloubka a chemismus vody."},
+{g:"IV. Management invazí",q:"Která z uvedených metod lovu ryb je selektivní?",o:["Živolovné pasti","Elektrolov","Zátahové sítě","Odčerpání tůně"],a:0,e:"Loví jen určité druhy a jedince, jsou široce použitelné, ale časově náročnější; pro eradikaci nedostačují."},
+{g:"IV. Management invazí",q:"Která metoda je využitelná pro lokální eradikaci ryb v malých tůních?",o:["Odčerpání tůně","Zátahové sítě","Elektrolov","Živolovné pasti"],a:0,e:"Je ale časově, personálně i finančně nákladná a použitelná jen u menších tůní."},
+{g:"IV. Management invazí",q:"Jaká je podle metodiky nejúčinnější nechemická metoda ochrany plodin proti invazním plošticím a mandelince?",o:["Ruční sběr jedinců","Spálení posklizňových zbytků","Zaorávání do hloubky","Zavlažování postřikem"],a:0,e:"Je ale velmi časově náročný, takže ho lze účinně využít jen na omezené ploše."},
+{g:"IV. Management invazí",q:"Kdy je vhodné zasahovat proti vegetativně se šířícím invazním rostlinám?",o:["Před květem, kdy je v podzemních orgánech malá zásoba živin","Až po dozrání semen","V zimě, kdy je rostlina v klidu","Kdykoli během roku, načasování nehraje roli"],a:0,e:"U generativně se šířících druhů se naopak zasahuje v době květu, aby nedozrála semena."},
+{g:"IV. Management invazí",q:"Proč se herbicid někdy aplikuje podruhé v pozdním létě?",o:["Asimiláty s herbicidem proudí do kořenů, což vede k odumření kořenového systému","Herbicid je v létě levnější","Rostliny jsou v té době nejmenší","Snižuje se tak riziko pro opylovače"],a:0,e:"Omezí se tím obrážení z kořenů v následujícím roce."},
+{g:"IV. Management invazí",q:"Jaký je důsledek mechanického seřezání pajasanu bez následného chemického zátěru?",o:["Výrazné zmlazení nových kmínků, které dalších snahy o potlačení zhorší","Okamžité odumření celého jedince","Rozšíření semen do okolí","Zvýšení obsahu dusíku v půdě"],a:0,e:"Nevhodný mechanický zásah tedy může druh ještě více podpořit."},
+{g:"IV. Management invazí",q:"Kterou rostlinu podle metodiky nelze potlačit bez použití chemické metody?",o:["Klejichu hedvábnou","Netýkavku žláznatou","Turan roční","Třtinu křovištní"],a:0,e:"Používá se postřik na list; u řady jiných druhů je vhodná kombinace mechanického a chemického zásahu."},
+{g:"IV. Management invazí",q:"Jak lze využít poloparazitický černýš rolní?",o:["Napojí se na zlatobýl obrovský a výrazně sníží jeho biomasu","Konkuruje akátu o půdní dusík","Přitahuje predátory invazního hmyzu","Rozkládá herbicidy v půdě"],a:0,e:"Jde o zajímavý příklad využití našeho původního druhu při potlačování invazní rostliny."},
+{g:"IV. Management invazí",q:"Které dobrovolnické akce metodika uvádí jako příklad zapojení veřejnosti?",o:["Vytrhávání borytu barvířského na Pálavě a netýkavky žláznaté v Moravském krasu","Odchyt nutrií v Hradci Králové","Elektrolov na jihomoravských tůních","Injektáž pajasanů v NP Podyjí"],a:0,e:"Lidé se mohou zapojit i přes neziskové organizace jako Rezekvítek či Lipka nebo formou skautských patronátů."},
+{g:"IV. Management invazí",q:"Který zákon ukládá orgánům ochrany přírody udržovat a chránit přírodní bohatství?",o:["Zákon č. 114/1992 Sb. o ochraně přírody a krajiny","Zákon č. 364/2021 Sb.","Nařízení EU č. 1143/2014","Vodní zákon"],a:0,e:"Z předpisu v podstatě vyplývá povinnost aktivně bojovat proti invazním druhům."},
+{g:"IV. Management invazí",q:"Co bývá označováno jako antiinvazní novela?",o:["Zákon č. 364/2021 Sb., platný od začátku roku 2022","Zákon č. 114/1992 Sb.","Nařízení Rady (ES) č. 708/2007","Opatření obecné povahy Jihomoravského kraje z roku 2024"],a:0,e:"Zakotvuje podrobnosti k procedurám, kompetencím, monitoringu i postupům praktické regulace."},
+{g:"IV. Management invazí",q:"Které zákony novela dále upravila?",o:["Zákon o myslivosti, lesní zákon a zákon o rybářství","Trestní zákoník a občanský zákoník","Školský zákon","Zákon o obcích"],a:0,e:"Dílčí změny se dotkly i zákona na ochranu zvířat proti týrání, vodního zákona a zákona o rostlinolékařské péči."},
+{g:"IV. Management invazí",q:"Jak se změnily možnosti regulačního odlovu?",o:["Zapojit se budou moci téměř všichni myslivci, dřív byl povolen jen mysliveckému hospodáři","Odlov byl zcela zakázán","Odlov smí provádět pouze AOPK","Odlov je nově možný jen v národních parcích"],a:0,e:"Nové pravomoci dostala i stráž přírody a lesní stráž, například při kontrolách vjezdu do lesů a ZCHÚ."},
+{g:"IV. Management invazí",q:"Co nově platí pro běžné občany ve vztahu k druhům z unijního seznamu?",o:["Je zakázáno je držet, vypouštět, pěstovat, chovat, přepravovat či prodávat","Musí je povinně hlásit obecnímu úřadu","Smějí je chovat jen v uzavřených prostorách bez omezení","Změna se občanů netýká"],a:0,e:"Výjimku lze v určitých případech získat po vyjádření odpovědných úřadů; pro přechodné období si chovatelé mohou zvířata ponechat, musí ale zabránit únikům a rozmnožování."},
+{g:"IV. Management invazí",q:"Proč mají nepůvodní druhy v akvakultuře mírnější režim?",o:["Představují významnou část produkce potravin – například kapr obecný nebo pstruh duhový","Nejsou schopné uniknout do volné přírody","Jsou v ČR původní","Nepodléhají žádným předpisům"],a:0,e:"Řídí se Nařízením Rady (ES) č. 708/2007."},
+{g:"IV. Management invazí",q:"Čeho se týká opatření obecné povahy Jihomoravského kraje z roku 2024?",o:["Bližších podmínek uplatňování Zásad regulace pajasanu žláznatého","Zákazu chovu nutrie říční","Regulace lovu jelena siky","Zákazu vjezdu do lesů"],a:0,e:"MŽP vydalo metodiku k zásadám regulace pajasanu už v roce 2022; klade mimo jiné důraz na povinnost majitelů pozemků pajasan regulovat."},
+
+/* ---------- V. BUDOUCNOST A KLIMA ---------- */
+{g:"V. Budoucnost a klima",q:"Co je ekologická valence?",o:["Rozpětí podmínek, ve kterých je organismus schopen přežít","Počet druhů, se kterými organismus soupeří","Rychlost šíření druhu krajinou","Míra dopadu druhu na ekosystém"],a:0,e:"Většina invazních druhů má valenci velmi širokou, což je jednou z příčin jejich úspěchu."},
+{g:"V. Budoucnost a klima",q:"Jak metodika celkově hodnotí vliv klimatické změny na biologické invaze?",o:["Spíše je akceleruje, i když některé druhy naopak limituje","Jednoznačně je zpomaluje","Nemá na ně žádný měřitelný vliv","Ovlivňuje pouze vodní organismy"],a:0,e:"Zejména mírnější zimy umožňují přežít druhům, které by dřív vhodné podmínky neměly."},
+{g:"V. Budoucnost a klima",q:"Kterým druhům podle metodiky vyhovují delší teplá období a mírné zimy?",o:["Sršni asijské, ambrozii peřenolisté a ovsíku vyvýšenému","Raku říčnímu a raku kamenáči","Skokanu ostronosému a kuňce obecné","Smrku ztepilému"],a:0,e:"Ovsík vyvýšený je uveden jako druh invadující stepní trávníky."},
+{g:"V. Budoucnost a klima",q:"Který druh využívá otevřené plošky vznikající v travinných porostech kvůli suchu?",o:["Turanka kanadská","Klejicha hedvábná","Bolševník velkolepý","Lupina mnoholistá"],a:0,e:"Přímo neohrožuje původní společenstva kvůli krátkověkosti a malému vzrůstu, ale je hojným indikátorem změn v krajině."},
+{g:"V. Budoucnost a klima",q:"Jak klimatická změna ovlivňuje naše původní raky?",o:["Vyšší teploty vody a nižší průtoky zhoršují jejich kondici a reprodukční úspěšnost","Zvyšuje jejich odolnost vůči račímu moru","Nemá na ně vliv, protože žijí pod vodou","Rozšiřuje jejich areál do nížin"],a:0,e:"Nové podmínky naopak vyhovují invazním rakům s širší tolerancí."},
+{g:"V. Budoucnost a klima",q:"Které druhy raků metodika uvádí jako invazní?",o:["Rak signální, rak pruhovaný a rak mramorovaný","Rak říční a rak kamenáč","Rak bahenní a rak dlouhoprstý","Pouze rak mramorovaný"],a:0,e:"Kromě přímé konkurence jsou i přenašeči račího moru."},
+{g:"V. Budoucnost a klima",q:"Co je původcem račího moru?",o:["Plíseň Aphanomyces astaci","Bakterie rodu Rhizobium","Virus přenášený hlaváčem","Parazitická glochidie"],a:0,e:"Pro původní populace raků může být jeho výskyt fatální."},
+{g:"V. Budoucnost a klima",q:"Který nepůvodní pták mohl díky změně klimatu kolonizovat naše území?",o:["Husice nilská","Ostralka štíhlá","Drop velký","Dytík úhorní"],a:0,e:"Vytváří konkurenci našim původním druhům kachen."},
+{g:"V. Budoucnost a klima",q:"Odkud pocházejí nepůvodní druhy, které se u nás dnes vyskytují, nejčastěji?",o:["Z jihovýchodní Evropy, východní Asie a Severní Ameriky","Z Antarktidy a subantarktických ostrovů","Ze středoafrických pralesů","Z Nového Zélandu"],a:0,e:"Jde o oblasti s podobnými klimatickými podmínkami, takže tamní druhy jsou na naše prostředí preadaptované."},
+{g:"V. Budoucnost a klima",q:"V čem spočívají nové hrozby podle metodiky?",o:["Nejen v častějších introdukcích, ale i v rozšiřování spektra druhů dříve klimaticky limitovaných","Výhradně v nárůstu lodní dopravy","V poklesu zájmu veřejnosti o přírodu","Ve zpřísňování legislativy"],a:0,e:"V kombinaci s disturbancemi, eutrofizací a fragmentací krajiny se invazní procesy dále urychlují."},
+{g:"V. Budoucnost a klima",q:"Který druh se do skalních stepních trávníků dostal úmyslnou výsadbou?",o:["Opuncie hnědoostná","Turanka kanadská","Sveřep střešní","Netýkavka malokvětá"],a:0,e:"Dlouho byla známá jen z kultury; na řadě lokalit se dnes dále šíří a její eradikace je značně obtížná."},
+{g:"V. Budoucnost a klima",q:"K čemu slouží klimatické modely v ochraně přírody?",o:["K predikci potenciálního rozšíření původních i problematických druhů za nových podmínek","K měření aktuální teploty vody v tocích","K určování stáří invazních populací","K výpočtu nákladů na eradikaci"],a:0,e:"Metodika ale upozorňuje, že ke spolehlivým predikcím a jejich zavedení do rozhodování vede ještě dlouhá cesta."},
+{g:"V. Budoucnost a klima",q:"Na jaká úskalí narážejí opatření orgánů ochrany přírody v praxi?",o:["Na majetkoprávní vztahy, neochotu uživatelů pozemků a nedostatek financí i lidí","Na zákaz zásahů v chráněných územích","Na absenci jakékoli legislativy","Na nedostupnost klimatických modelů"],a:0,e:"Nestátní organizace se s obdobnými problémy potýkají často ještě ve větší míře."},
+{g:"V. Budoucnost a klima",q:"Jak metodika hodnotí obnovu mokřadů a revitalizaci tůní?",o:["Nejsou univerzálně vhodné – jejich efekt závisí na kontextu stanoviště a mohou podpořit i nepůvodní druhy","Jsou vždy nejlepším možným opatřením","Jsou zákonem zakázané mimo chráněná území","Nemají žádný vliv na invazní druhy"],a:0,e:"Opatření vyhovující jedné skupině organismů nemusí vyhovovat jiné – proto je nutná mezioborová koordinace."},
+{g:"V. Budoucnost a klima",q:"Proč může být načasování seče problematické?",o:["Časná i pozdní seč mají protichůdné dopady na různé skupiny rostlin a živočichů","Seč je vždy škodlivá pro biodiverzitu","Seč lze provádět jen jednou za deset let","Seč vždy podporuje invazní druhy"],a:0,e:"Právě proto efektivní management vyžaduje komunikaci mezi odborníky z různých oborů."}
+];
+
+/* ---------------- logika ---------------- */
+const $ = id => document.getElementById(id);
+let deck=[], i=0, score=0, answered=false, missed=[];
+
+const chapters=[...new Set(Q.map(q=>q.g))];
+chapters.forEach(c=>{
+  const o=document.createElement("option"); o.value=c; o.textContent=c+" ("+Q.filter(q=>q.g===c).length+")";
+  $("chapSel").appendChild(o);
+});
+$("chapSel").options[0].textContent="Všechny kapitoly ("+Q.length+")";
+
+function shuffle(a){for(let k=a.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[a[k],a[j]]=[a[j],a[k]]}return a}
+
+function start(list){
+  deck = list || Q.filter(q=>$("chapSel").value==="all"||q.g===$("chapSel").value);
+  deck = shuffle([...deck]);
+  const n = parseInt($("lenSel").value,10);
+  if(!list && n>0) deck = deck.slice(0,n);
+  i=0; score=0; missed=[];
+  $("quiz").classList.remove("hidden"); $("result").classList.add("hidden");
+  render();
+}
+function render(){
+  const q=deck[i]; answered=false;
+  $("chap").textContent=q.g;
+  $("q").textContent=q.q;
+  $("pos").textContent=`Otázka ${i+1} z ${deck.length}`;
+  $("scoreNow").textContent=`Správně: ${score}`;
+  $("progress").style.width=(i/deck.length*100)+"%";
+  $("exp").classList.add("hidden");
+  $("nextBtn").disabled=true;
+  $("nextBtn").textContent = (i===deck.length-1)?"Vyhodnotit":"Další otázka";
+
+  const letters=["A","B","C","D"];
+  const opts=shuffle(q.o.map((t,k)=>({t,ok:k===q.a})));
+  $("opts").innerHTML="";
+  opts.forEach((o,k)=>{
+    const b=document.createElement("button");
+    b.className="opt"; b.innerHTML=`<b>${letters[k]}</b><span>${o.t}</span>`;
+    b.onclick=()=>choose(b,o.ok,opts,q);
+    $("opts").appendChild(b);
+  });
+}
+function choose(btn,ok,opts,q){
+  if(answered) return; answered=true;
+  const nodes=[...$("opts").children];
+  nodes.forEach((n,k)=>{ n.disabled=true; if(opts[k].ok) n.classList.add("right"); });
+  if(ok){ score++; } else { btn.classList.add("wrong"); missed.push(q); }
+  $("scoreNow").textContent=`Správně: ${score}`;
+  $("exp").innerHTML=(ok?"<b>Správně. </b>":"<b>Chyba. </b>")+q.e;
+  $("exp").classList.remove("hidden");
+  $("nextBtn").disabled=false;
+  $("nextBtn").focus();
+}
+function next(){ if(i<deck.length-1){ i++; render(); } else finish(); }
+function finish(){
+  $("quiz").classList.add("hidden"); $("result").classList.remove("hidden");
+  const pct=Math.round(score/ (i+ (answered?1:0) || 1) *100);
+  const done=i+(answered?1:0);
+  $("finalScore").textContent=`${score} / ${done}`;
+  $("finalNote").textContent = pct>=90?"Výborně, látku máš zvládnutou.":pct>=70?"Dobré, ale pár míst si projdi znovu.":pct>=50?"Základ držíš, chce to ještě projít metodiku.":"Zkus si nejdřív materiál přečíst a pak test zopakovat.";
+  $("redoBtn").style.display = missed.length?"":"none";
+  if(missed.length){
+    $("missList").classList.remove("hidden");
+    $("missList").innerHTML="<p style='margin:0 0 8px;font-weight:600'>Chybné odpovědi:</p>"+
+      missed.map(m=>`<li>${m.q}<br><span style="color:var(--moss)">${m.o[m.a]}</span></li>`).join("");
+  } else $("missList").classList.add("hidden");
+}
+$("startBtn").onclick=()=>start();
+$("againBtn").onclick=()=>start();
+$("redoBtn").onclick=()=>start(missed);
+$("nextBtn").onclick=next;
+$("quitBtn").onclick=finish;
+</script>
+</body>
+</html>
